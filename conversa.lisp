@@ -1,21 +1,32 @@
+;;; conversa.lisp
+
 (load "messenger.lisp")
 
-(defun simular-conversa ()
-  (format t "--- INÍCIO DA COMUNICAÇÃO ---~%")
+(defun simular-conversa-rsa100 ()
+  (format t "--- INICIANDO SIMULAÇÃO RSA-100 ---~%~%")
 
-  ;; 1. Beto gera as chaves e disponibiliza a pública
-  (let* ((beto-keys (generate-keys 61 53))
-         (beto-pub (getf beto-keys :pub))
-         (beto-priv (getf beto-keys :priv))
+  ;; 1. Beto define seus primos gigantes (Fatores do RSA-100)
+  (let* ((p 37975227936943673922808872755445627854565536638199)
+         (q 40094690950920881030683735292761468389214899724061)
 
-         ;; 2. Ana escreve e cifra a mensagem
-         (texto-original "LISP EH LEGAL")
-         (pacote-cifrado (ana-sends texto-original beto-pub)))
+         ;; 2. Beto gera as chaves
+         (keys (generate-keys p q))
+         (pub (getf keys :pub))
+         (priv (getf keys :priv))
 
-    (format t "Ana enviou (cifrado): ~A~%" pacote-cifrado)
+         ;; 3. Ana escreve a mensagem
+         (msg "LISP NO RSA-100 EH INCRIVEL")
+         (tamanho (length msg)))
 
-    ;; 3. Beto recebe e decifra
-    (let ((texto-recebido (beto-receives pacote-cifrado beto-priv)))
-      (format t "Beto leu: ~A~%" texto-recebido))))
+    (format t "Módulo (n) de 100 dígitos gerado com sucesso.~%")
+    (format t "Chave Pública (e): ~A~%~%" (first pub))
 
-(simular-conversa)
+    ;; 4. Ana cifra a frase inteira como UM ÚNICO número
+    (let ((cifrado (rsa-encrypt-string msg pub)))
+      (format t "Ana enviou o Super Número cifrado:~%~A~%~%" cifrado)
+
+      ;; 5. Beto recebe, decifra e reconstrói
+      (let ((recebido (rsa-decrypt-string cifrado priv tamanho)))
+        (format t "Beto decifrou a mensagem:~%\"~A\"~%" recebido)))))
+
+(simular-conversa-rsa100)

@@ -1,25 +1,38 @@
+;;; messenger.lisp
+
 (load "rsa.lisp")
 
-;; --- Conversores ---
+(defun os2ip (octets)
+  "Octet-String-to-Integer: Transforma uma sequência de bytes em um único inteiro gigante."
+  (reduce (lambda (acc byte)
+            (+ (* acc 256) byte))
+          octets
+          :initial-value 0))
 
-(defun text->numbers (text)
-  "Transforma 'OI' em (79 73)"
-  (map 'list #'char-code text))
+(defun i2osp (x xlen)
+  "Integer-to-Octet-String: Transforma o inteiro de volta em bytes, garantindo o tamanho xlen."
+  (let ((result nil))
+    (loop repeat xlen
+          do (push (mod x 256) result)
+             (setf x (floor x 256)))
+    result))
 
-(defun numbers->text (nums)
-  "Transforma (79 73) em 'OI'"
-  (map 'string #'code-char nums))
+(defun text-to-octets (str)
+  "Nossa versão manual: Transforma string em lista de códigos."
+  (map 'list #'char-code str))
 
-;; --- Ações da Ana e do Beto ---
+(defun octets-to-text (octets)
+  "Nossa versão manual: Transforma lista de códigos em string."
+  (map 'string #'code-char octets))
 
-(defun ana-sends (message beto-public-key)
-  "Ana cifra cada letra usando a chave pública do Beto"
-  (let ((nums (text->numbers message)))
-    (mapcar (lambda (n) (encrypt n beto-public-key))
-            nums)))
+(defun rsa-encrypt-string (message public-key)
+  "Pega o texto, gera o Super Número e cifra."
+  (let* ((octets (text-to-octets message))
+         (m (os2ip octets)))
+    (encrypt m public-key)))
 
-(defun beto-receives (cipher-list beto-private-key)
-  "Beto decifra cada número e transforma de volta em texto"
-  (let ((nums (mapcar (lambda (c) (decrypt c beto-private-key))
-                      cipher-list)))
-    (numbers->text nums)))
+(defun rsa-decrypt-string (ciphertext private-key msg-len)
+  "Decifra o blocão e reconstrói o texto de tamanho msg-len."
+  (let* ((m (decrypt ciphertext private-key))
+         (octets (i2osp m msg-len)))
+    (octets-to-text octets)))

@@ -1,3 +1,6 @@
+;;; math.lisp
+
+
 ;; Exponenciação modular recursiva (Exponenciação binária)
 (defun exp-mod (base exp n)
   (cond ((= exp 0) 1)
