@@ -1,13 +1,15 @@
 ;;; conversa.lisp
 
 (load "messenger.lisp")
+(load "primes.lisp")
 
 (defun simular-conversa-rsa100 ()
   (format t "--- INICIANDO SIMULAÇÃO RSA-100 ---~%~%")
 
   ;; 1. Beto define seus primos gigantes (Fatores do RSA-100)
-  (let* ((p 37975227936943673922808872755445627854565536638199)
-         (q 40094690950920881030683735292761468389214899724061)
+  (let* ((p +rsa-100-p+)
+         (q +rsa-100-q+)
+
 
          ;; 2. Beto gera as chaves
          (keys (generate-keys p q))
