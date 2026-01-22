@@ -1,4 +1,5 @@
 ;;; messenger.lisp
+
 (load "rsa.lisp")
 
 (defun os2ip (octets)
@@ -6,11 +7,13 @@
           octets :initial-value 0))
 
 (defun i2osp (x xlen)
-  (let ((result nil))
-    (loop repeat xlen
-          do (push (mod x 256) result)
-             (setf x (floor x 256)))
-    result))
+  (if (>= x (expt 256 xlen))
+      (error "Integer too large for xLen ~D" xlen)
+      (let ((result nil))
+        (loop repeat xlen
+              do (push (mod x 256) result)
+              (setf x (floor x 256)))
+        result)))
 
 (defun text-to-octets (str) (map 'list #'char-code str))
 (defun octets-to-text (octets) (map 'string #'code-char octets))
