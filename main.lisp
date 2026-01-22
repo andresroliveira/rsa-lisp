@@ -21,6 +21,7 @@
          )
 
     (format t "Módulo (n) de 100 dígitos gerado com sucesso.~%")
+    ;; (format t "Chave Pública (n): ~A~%~%" (second pub))
     (format t "Chave Pública (e): ~A~%~%" (first pub))
 
     ;; 4. Ana cifra a frase
