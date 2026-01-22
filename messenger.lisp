@@ -1,6 +1,7 @@
 ;;; messenger.lisp
 
 (load "rsa.lisp")
+(load "padding.lisp")
 
 (defun os2ip (octets)
   (reduce (lambda (acc byte) (+ (* acc 256) byte))
@@ -24,25 +25,26 @@
         collect (subseq text i (min (+ i size) (length text)))))
 
 (defun rsa-encrypt-string (message public-key)
-  "Fatia a mensagem conforme a chave e cifra cada bloco."
+  "Fatia a mensagem, aplica padding e cifra cada bloco."
   (let* ((block-size (key-block-size public-key))
-         (chunks (chunk-text message block-size)))
+         ;; O espaço útil é reduzido pelo overhead do padding (11 bytes)
+         (payload-size (- block-size 11))
+         (chunks (chunk-text message payload-size)))
     (mapcar (lambda (chunk)
-              (encrypt (os2ip (text-to-octets chunk)) public-key))
+              (let* ((octets (text-to-octets chunk))
+                     (padded (pad-block octets block-size))
+                     (m (os2ip padded)))
+                (encrypt m public-key)))
             chunks)))
 
-(defun rsa-decrypt-string (cipher-list private-key total-length)
-  "Decifra os blocos e junta as strings respeitando o tamanho original."
-  (let* ((block-size (key-block-size private-key))
-         (num-chunks (length cipher-list)))
+(defun rsa-decrypt-string (cipher-list private-key)
+  "Decifra os blocos, remove o padding e reconstrói a string original."
+  (let* ((block-size (key-block-size private-key)))
     (let ((decrypted-chunks
-           (loop for c in cipher-list
-                 for i from 1
-                 collect (let* ((m (decrypt c private-key))
-                                ;; Calcula se o bloco atual é o último (pode ser menor)
-                                (len (if (= i num-chunks)
-                                         (let ((rem (mod total-length block-size)))
-                                           (if (zerop rem) block-size rem))
-                                         block-size)))
-                           (octets-to-text (i2osp m len))))))
+           (mapcar (lambda (c)
+                     (let* ((m (decrypt c private-key))
+                            (padded (i2osp m block-size))
+                            (data (unpad-block padded)))
+                       (octets-to-text data)))
+                   cipher-list)))
       (apply #'concatenate 'string decrypted-chunks))))
