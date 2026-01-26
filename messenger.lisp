@@ -1,12 +1,16 @@
 ;;; messenger.lisp
+
+
 (load "rsa.lisp")
 (load "padding.lisp")
+(load "hash.lisp")
 
-;; --- Utilitários de Conversão ---
 (defun os2ip (octets)
+  "Octet-String-to-Integer: Converte uma lista de bytes em um inteiro único."
   (reduce (lambda (acc byte) (+ (* acc 256) byte)) octets :initial-value 0))
 
 (defun i2osp (x xlen)
+  "Integer-to-Octet-String: Converte um inteiro em uma lista de bytes de tamanho xLen."
   (if (>= x (expt 256 xlen))
       (error "Integer too large for xLen ~D" xlen)
       (let ((result nil))
@@ -15,61 +19,62 @@
                  (setf x (floor x 256)))
         result)))
 
-(defun text-to-octets (str) (map 'list #'char-code str))
-(defun octets-to-text (octets) (map 'string #'code-char octets))
+(defun text-to-octets (str)
+  "Converte string para lista de códigos ASCII."
+  (map 'list #'char-code str))
+
+(defun octets-to-text (octets)
+  "Converte lista de códigos ASCII para string."
+  (map 'string #'code-char octets))
 
 (defun chunk-text (text size)
+  "Divide o texto em blocos baseados no espaço útil (payload) do RSA."
   (loop for i from 0 below (length text) by size
         collect (subseq text i (min (+ i size) (length text)))))
 
-;; --- NOVA: Função de Hash (Simulando SHA-1) ---
-(defun simple-hash (octets)
-  "Reduz qualquer lista de bytes para exatos 20 bytes usando XOR."
-  (let ((digest (make-array 20 :element-type '(unsigned-byte 8) :initial-element 0)))
-    (loop for byte in octets
-          for i from 0
-          do (setf (aref digest (mod i 20))
-                   (logxor (aref digest (mod i 20)) byte)))
-    (coerce digest 'list)))
-
-;; --- Cifragem (Confidencialidade) ---
 (defun rsa-encrypt-string (message public-key)
-  (let* ((block-size (key-block-size public-key))
-         (payload-size (- block-size 11))
+  "Fatia a mensagem, aplica Padding Tipo 02 e cifra cada bloco."
+  (let* ((k (key-octet-length public-key))
+         ;; Espaço útil = Tamanho total (k) - Overhead do Padding (11)
+         (payload-size (- k 11))
          (chunks (chunk-text message payload-size)))
     (mapcar (lambda (chunk)
               (let* ((octets (text-to-octets chunk))
-                     (padded (pad-block octets block-size :encryption))
+                     (padded (pad-block octets k :encryption))
                      (m (os2ip padded)))
                 (encrypt m public-key)))
             chunks)))
 
 (defun rsa-decrypt-string (cipher-list private-key)
-  (let* ((block-size (key-block-size private-key)))
+  "Decifra cada bloco, remove o padding e reconstrói a string original."
+  (let ((k (key-octet-length private-key)))
     (let ((decrypted-chunks
             (mapcar (lambda (c)
                       (let* ((m (decrypt c private-key))
-                             (padded (i2osp m block-size))
+                             ;; Converte o número para o balde cheio de k bytes
+                             (padded (i2osp m k))
                              (data (unpad-block padded)))
                         (octets-to-text data)))
                     cipher-list)))
       (apply #'concatenate 'string decrypted-chunks))))
 
 ;; --- Assinatura (Autenticidade - RFC 8017) ---
+
 (defun rsa-sign-string (message private-key)
-  "Assina o HASH da mensagem."
-  (let* ((block-size (key-block-size private-key))
-         (octets (text-to-octets message))
-         (digest (simple-hash octets)) ;; Resumo fixo de 20 bytes
-         (padded (pad-block digest block-size :signature))
-         (m (os2ip padded)))
-    (rsasp1 private-key m)))
+  "Gera uma assinatura digital única para o Hash SHA-256 da mensagem."
+  (let ((k (key-octet-length private-key)))
+    (let* ((octets (text-to-octets message))
+           (digest (sha256 octets)) ;; Gera resumo de 32 bytes
+           (padded (pad-block digest k :signature)) ;; Padding Tipo 01
+           (m (os2ip padded)))
+      (rsasp1 private-key m))))
 
 (defun rsa-verify-string (message signature public-key)
-  "Verifica se o Hash da assinatura bate com o Hash da mensagem original."
-  (let* ((block-size (key-block-size public-key))
-         (s-rep (rsavp1 public-key signature))
-         (padded (i2osp s-rep block-size))
-         (decrypted-hash (unpad-block padded))
-         (actual-hash (simple-hash (text-to-octets message))))
-    (equal decrypted-hash actual-hash)))
+  "Verifica se o Hash contido na assinatura bate com o Hash da mensagem atual."
+  (let ((k (key-octet-length public-key)))
+    (let* ((s-rep (rsavp1 public-key signature))
+           ;; Converte o representante da assinatura para k bytes
+           (padded (i2osp s-rep k))
+           (decrypted-hash (unpad-block padded))
+           (actual-hash (sha256 (text-to-octets message))))
+      (equal decrypted-hash actual-hash))))

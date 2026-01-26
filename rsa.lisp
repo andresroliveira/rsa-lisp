@@ -26,12 +26,10 @@
   "Retorna o n da chave."
   (second key))
 
-(defun key-block-size (key)
-  "Calcula o tamanho do bloco k-1 baseado no n da chave."
-  (let* ((n (get-key-modulus key))
-         ;; k é o número de octetos necessários para representar n
-         (k (ceiling (integer-length n) +octeto-size+)))
-    (1- k)))
+(defun key-octet-length (key)
+  "Retorna o tamanho k (comprimento do módulo n em octetos) real."
+  (let ((n (get-key-modulus key)))
+    (ceiling (integer-length n) +octeto-size+)))
 
 (defun rsasp1 (priv-key m)
   "RSA Signature Primitive 1: s = m^d mod n."
