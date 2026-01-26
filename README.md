@@ -26,10 +26,14 @@ O projeto evoluiu para suportar **RSA‑2048**, **assinatura com SHA‑256** e *
 
 O sistema baseia-se nas transformações fundamentais do RSA:
 
-- **Cifragem**: $c = m^e \mod n$
-- **Decifragem**: $m = c^d \mod n$
-- **Assinatura**: $s = H(m)^d \mod n$
-- **Verificação**: $H(m) == s^e \mod n$
+- **Cifragem**: $c = m^e \pmod n$
+- **Assinatura/Decifragem (via CRT)**:
+  Em vez do cálculo direto $m = c^d \pmod n$, utilizamos os fatores primos para acelerar o processo:
+  - $m_1 = c^{dP} \pmod p$
+  - $m_2 = c^{dQ} \pmod q$
+  - $h = qInv \cdot (m_1 - m_2) \pmod p$
+  - $m = m_2 + h \cdot q$
+- **Verificação**: $H(m) \equiv s^e \pmod n$
 
 ## Como Rodar
 
@@ -63,3 +67,7 @@ Após gerar dois primos com o OpenSSL, substitua os valores:
 ## Exemplo de Saída
 
 O programa gera chaves RSA‑2048, assina a mensagem com SHA‑256, cifra em blocos de 256 bytes e valida a assinatura após a decifragem.
+
+## Licença
+
+Este projeto é licenciado sob a Licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
