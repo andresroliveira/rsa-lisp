@@ -68,6 +68,22 @@ Após gerar dois primos com o OpenSSL, substitua os valores:
 
 O programa gera chaves RSA‑2048, assina a mensagem com SHA‑256, cifra em blocos de 256 bytes e valida a assinatura após a decifragem.
 
+## Visualização: Mapeamento Caótico
+
+Para demonstrar a segurança e a característica de permutação pseudo-aleatória do RSA-2048, o script `plot.lisp` gera uma visualização do espaço do módulo.
+
+![Mapeamento RSA](rsa_mapping.png)
+
+Este gráfico de dispersão (scatter plot) mostra 3.000 pontos normalizados $(m/n, c/n)$.
+
+### Como gerar a imagem
+
+O script utiliza o Gnuplot para renderizar os dados normalizados. Para gerar ou atualizar o gráfico, execute:
+
+```bash
+sbcl --script plot.lisp
+```
+
 ## Licença
 
 Este projeto é licenciado sob a Licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
