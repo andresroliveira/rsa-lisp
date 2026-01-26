@@ -46,19 +46,16 @@
             chunks)))
 
 (defun rsa-decrypt-string (cipher-list private-key)
-  "Decifra cada bloco, remove o padding e reconstrói a string original."
+  "Decifra usando a otimização CRT."
   (let ((k (key-octet-length private-key)))
     (let ((decrypted-chunks
             (mapcar (lambda (c)
-                      (let* ((m (decrypt c private-key))
-                             ;; Converte o número para o balde cheio de k bytes
+                      (let* ((m (decrypt-crt c private-key)) ;; Chamada CRT aqui
                              (padded (i2osp m k))
                              (data (unpad-block padded)))
                         (octets-to-text data)))
                     cipher-list)))
       (apply #'concatenate 'string decrypted-chunks))))
-
-;; --- Assinatura (Autenticidade - RFC 8017) ---
 
 (defun rsa-sign-string (message private-key)
   "Gera uma assinatura digital única para o Hash SHA-256 da mensagem."
