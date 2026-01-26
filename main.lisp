@@ -1,40 +1,35 @@
 ;;; main.lisp
-
 (load "messenger.lisp")
 (load "primes.lisp")
 
-(defun simular-conversa ()
-  (format t "--- INICIANDO SIMULAÇÃO ---~%~%")
+(defun main ()
+  (format t "=== RSA-100 TOOL (RFC 8017 COMPLETO COM HASH) ===~%~%")
 
-  ;; 1. Beto define seus primos gigantes (Fatores do RSA-100)
-  (let* ((p +rsa-100-p+)
-         (q +rsa-100-q+)
-
-         ;; 2. Beto gera as chaves
-         (keys (generate-keys p q))
+  (let* ((keys (generate-keys +rsa-100-p+ +rsa-100-q+))
          (pub (getf keys :pub))
          (priv (getf keys :priv))
+         ;; Use a frase que quiser, o Hash resolve o erro de tamanho!
+         (msg "LISP NO RSA-100 EH INCRIVEL E SEGURO. AGORA PODEMOS ESCREVER TEXTOS GIGANTES NA ASSINATURA."))
 
-         ;; 3. Ana escreve a mensagem (pode ter qualquer tamanho)
-         (msg "ESTA EH UMA MENSAGEM BEM LONGA PARA TESTAR O FATIAMENTO AUTOMATICO DO NOSSO SISTEMA RSA")
-         ;; Note: 'tamanho' não é mais necessário para a decifragem
-         )
+    ;; 1. ANA ASSINA A MENSAGEM
+    (format t "[SISTEMA] Gerando assinatura digital (Digest de 20 bytes)...~%")
+    (let ((assinatura (rsa-sign-string msg priv)))
+      (format t "[INFO] Assinatura gerada com sucesso.~%~%")
 
-    (format t "Módulo (n) de 100 dígitos gerado com sucesso.~%")
-    ;; (format t "Chave Pública (n): ~A~%~%" (second pub))
-    (format t "Chave Pública (e): ~A~%~%" (first pub))
+      ;; 2. ANA CIFRA A MENSAGEM
+      (format t "[SISTEMA] Cifrando mensagem em blocos...~%")
+      (let ((cifrado (rsa-encrypt-string msg pub)))
+        (format t "[ANA] Enviou ~D bloco(s) cifrado(s).~%~%" (length cifrado))
 
-    ;; 4. Ana cifra a frase
-    ;; Agora cada bloco contém Padding: [00][02][FF...FF][00][MENSAGEM]
-    (let ((cifrado (rsa-encrypt-string msg pub)))
-      (format t "Ana enviou ~A bloco(s) cifrado(s) com padding estruturado:~%~A~%~%"
-              (length cifrado)
-              cifrado)
+        ;; 3. BETO RECEBE E PROCESSA
+        (format t "[SISTEMA] Beto iniciando recepção...~%")
+        (let ((decifrado (rsa-decrypt-string cifrado priv)))
+          (format t "[BETO] Mensagem decifrada: \"~A\"~%" decifrado)
 
-      ;; 5. Beto recebe a lista e decifra
-      ;; O padding permite que ele saiba onde a mensagem termina sem precisar do tamanho original
-      (let ((recebido (rsa-decrypt-string cifrado priv)))
-        (format t "Beto removeu o padding e reconstruiu a mensagem:~%\"~A\"~%" recebido)))))
+          ;; 4. VERIFICAÇÃO DA ASSINATURA
+          (if (rsa-verify-string decifrado assinatura pub)
+              (format t "[STATUS] ASSINATURA VALIDA: Mensagem autentica e integra!~%")
+              (format t "[STATUS] ERRO: Falha na veracidade da mensagem.~%")))))))
 
-;; Executa a simulação
-(simular-conversa)
+;; Executa o ponto de entrada
+(main)

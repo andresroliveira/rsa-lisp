@@ -1,20 +1,22 @@
 ;;; padding.lisp
 
-(defun generate-padding-string (len)
-  "Gera uma lista de 'len' octetos aleatórios não nulos (1-255)."
+(defun generate-padding-string (len &optional (type :encryption))
+  "Gera string de padding. :encryption (0x02) usa aleatórios, :signature (0x01) usa 0xFF."
   (loop repeat len
-        collect (1+ (random 255))))
+        collect (if (eq type :encryption)
+                    (1+ (random 255))
+                    255)))
 
-(defun pad-block (data-octets block-size)
-  "Aplica preenchimento probabilístico conforme RFC 8017 Section 7.2.1."
+(defun pad-block (data-octets block-size &optional (type :encryption))
+  "Aplica padding conforme RFC 8017. Type pode ser :encryption ou :signature."
   (let* ((data-len (length data-octets))
-         ;; 3 bytes: cabeçalho (00 02) e o separador (00)
+         (bt (if (eq type :encryption) 2 1))
          (pad-len (- block-size data-len 3)))
     (if (< pad-len 8)
-        (error "Mensagem grande demais para o bloco RSA.")
-        (append '(0 2)
-                (generate-padding-string pad-len) ;; Agora é aleatório!
-                '(0)
+        (error "Mensagem grande demais para o bloco.")
+        (append (list 0 bt)
+                (generate-padding-string pad-len type)
+                (list 0)
                 data-octets))))
 
 (defun unpad-block (padded-octets)

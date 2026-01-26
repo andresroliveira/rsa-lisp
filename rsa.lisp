@@ -32,3 +32,19 @@
          ;; k é o número de octetos necessários para representar n
          (k (ceiling (integer-length n) +octeto-size+)))
     (1- k)))
+
+(defun rsasp1 (priv-key m)
+  "RSA Signature Primitive 1: s = m^d mod n."
+  (let ((d (first priv-key))
+        (n (second priv-key)))
+    (if (or (< m 0) (>= m n))
+        (error "Mensagem fora do alcance do módulo.")
+        (exp-mod m d n))))
+
+(defun rsavp1 (pub-key s)
+  "RSA Verification Primitive 1: m = s^e mod n."
+  (let ((e (first pub-key))
+        (n (second pub-key)))
+    (if (or (< s 0) (>= s n))
+        (error "Assinatura fora do alcance do módulo.")
+        (exp-mod s e n))))
